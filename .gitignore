@@ -75,6 +75,6 @@ build/
 ### VS Code ###
 .vscode/
 
-.yml
-.yaml
-.properties
+*.yml
+*.yaml
+*.properties
