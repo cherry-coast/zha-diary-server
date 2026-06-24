@@ -42,4 +42,14 @@ public interface UserService extends IService<User> {
      */
     String uploadAvatar(MultipartFile file);
 
+
+
+    /**
+     * Update user info
+     *
+     * @param param  Update param
+     * @param userId user ID
+     */
+    void updateUserInfo(com.cherry.model.param.user.UpdateUserInfoParam param, Long userId);
+
 }

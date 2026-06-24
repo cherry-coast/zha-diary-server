@@ -26,4 +26,12 @@ public class UserController {
         return CherryResponseEntity.success(userService.uploadAvatar(file));
     }
 
+    @PostMapping("/update")
+    @Operation(summary = "Update User Info")
+    public CherryResponseEntity<Void> updateUserInfo(@org.springframework.web.bind.annotation.RequestBody com.cherry.model.param.user.UpdateUserInfoParam param) {
+        UserContext.User user = UserContext.getUser();
+        userService.updateUserInfo(param, user.getId());
+        return CherryResponseEntity.success();
+    }
+
 }

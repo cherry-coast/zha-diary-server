@@ -5,18 +5,21 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.cherry.base.exception.BaseExceptionEnum;
 import com.cherry.base.exception.CherryException;
 import com.cherry.base.utils.CherryAesUtil;
+import com.cherry.base.utils.CherryMailUtil;
 import com.cherry.base.utils.CherryOssUtil;
 import com.cherry.base.utils.TokenUtil;
 import com.cherry.database.mapper.UserMapper;
 import com.cherry.model.entity.User;
 import com.cherry.model.param.auth.LoginParam;
 import com.cherry.model.param.auth.RegisterParam;
+import com.cherry.model.param.user.UpdateUserInfoParam;
 import com.cherry.model.vo.auth.AuthVO;
 import com.cherry.service.api.UserService;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -95,7 +98,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             if (user == null) {
                 throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "该邮箱未注册");
             }
-            
+
             codeCache.invalidate(cacheKey);
             return buildAuthRes(user);
         } else {
@@ -118,11 +121,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(User::getEmail, email);
         boolean exists = userMapper.exists(queryWrapper);
-        
+
         if (type == 1 && exists) {
             throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "该邮箱已经注册");
         }
-        if (type == 2 && !exists) {
+        if ((type == 2 || type == 3) && !exists) {
             throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "该邮箱未注册");
         }
 
@@ -131,7 +134,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         codeCache.put(cacheKey, code);
 
         try {
-            com.cherry.base.utils.CherryMailUtil.postMessage("注册验证码", "您的验证码是：" + code + "，5分钟内有效。", Collections.singletonList(email));
+            CherryMailUtil.postMessage("注册验证码", "您的验证码是：" + code + "，5分钟内有效。", Collections.singletonList(email));
         } catch (Exception e) {
             throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "发送验证码失败");
         }
@@ -142,5 +145,46 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public String uploadAvatar(MultipartFile file) {
         return cherryOssUtil.uploadImage(file);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateUserInfo(UpdateUserInfoParam param, Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "用户不存在");
+        }
+
+        if (StringUtils.isNotBlank(param.getUsername())) {
+            LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(User::getUsername, param.getUsername());
+            queryWrapper.ne(User::getId, userId);
+            if (userMapper.exists(queryWrapper)) {
+                throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "用户名已存在");
+            }
+            user.setUsername(param.getUsername());
+        }
+
+        if (StringUtils.isNotBlank(param.getAvatar())) {
+            user.setAvatar(param.getAvatar());
+        }
+
+        if (StringUtils.isNotBlank(param.getPassword())) {
+            if (StringUtils.isBlank(param.getEmail()) || StringUtils.isBlank(param.getCode())) {
+                throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "修改密码需提供邮箱和验证码");
+            }
+            
+            // Validate code
+            String cacheKey = CACHE_KEY_AUTH_CODE + "3:" + param.getEmail();
+            String cachedCode = codeCache.getIfPresent(cacheKey);
+            if (cachedCode == null || !cachedCode.equals(param.getCode())) {
+                throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "验证码错误或已过期");
+            }
+            
+            user.setPassword(CherryAesUtil.encrypt(param.getPassword()));
+            codeCache.invalidate(cacheKey);
+        }
+
+        userMapper.updateById(user);
     }
 }
