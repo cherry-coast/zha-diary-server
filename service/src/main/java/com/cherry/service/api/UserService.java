@@ -11,7 +11,7 @@ public interface UserService extends IService<User> {
     /**
      * User registration
      *
-     * @param registerReq Registration details
+     * @param param Registration details
      * @return AuthRes with user info
      */
     AuthVO register(RegisterParam param);
@@ -19,9 +19,18 @@ public interface UserService extends IService<User> {
     /**
      * User login
      *
-     * @param loginReq Login credentials
+     * @param param Login credentials
      * @return AuthRes with token
      */
     AuthVO login(LoginParam param);
+
+    /**
+     * Send email verification code
+     *
+     * @param email Email address
+     * @param type  1 for register, 2 for login
+     * @return The verification code
+     */
+    String sendCode(String email, Integer type);
 
 }

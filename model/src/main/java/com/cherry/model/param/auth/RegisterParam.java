@@ -19,4 +19,7 @@ public class RegisterParam {
     @Schema(description = "Nickname")
     private String nickname;
 
+    @Schema(description = "Email Verification Code", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String code;
+
 }

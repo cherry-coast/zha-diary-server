@@ -3,6 +3,7 @@ package com.cherry.web.controller;
 import com.cherry.base.domain.response.CherryResponseEntity;
 import com.cherry.model.param.auth.LoginParam;
 import com.cherry.model.param.auth.RegisterParam;
+import com.cherry.model.param.auth.SendCodeParam;
 import com.cherry.model.vo.auth.AuthVO;
 import com.cherry.service.api.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,6 +35,13 @@ public class AuthController {
     public CherryResponseEntity<AuthVO> login(@RequestBody LoginParam param) {
         AuthVO authVO = userService.login(param);
         return CherryResponseEntity.success(authVO);
+    }
+
+    @PostMapping("/send-code")
+    @Operation(summary = "Send Email Verification Code")
+    public CherryResponseEntity<String> sendCode(@RequestBody SendCodeParam param) {
+        String code = userService.sendCode(param.getEmail(), param.getType());
+        return CherryResponseEntity.success(code);
     }
 
 }

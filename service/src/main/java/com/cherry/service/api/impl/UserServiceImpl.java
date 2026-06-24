@@ -12,14 +12,25 @@ import com.cherry.model.param.auth.LoginParam;
 import com.cherry.model.param.auth.RegisterParam;
 import com.cherry.model.vo.auth.AuthVO;
 import com.cherry.service.api.UserService;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.concurrent.TimeUnit;
 
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+
+    private static final String CACHE_KEY_AUTH_CODE = "auth:code:";
+
+    private final Cache<String, String> codeCache = Caffeine.newBuilder()
+            .expireAfterWrite(2, TimeUnit.MINUTES)
+            .build();
 
     private final UserMapper userMapper;
 
@@ -32,6 +43,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "用户名已存在");
         }
 
+        String cacheKey = CACHE_KEY_AUTH_CODE + "1:" + param.getEmail();
+        String cachedCode = codeCache.getIfPresent(cacheKey);
+        if (cachedCode == null || !cachedCode.equals(param.getCode())) {
+            throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "验证码错误或已过期");
+        }
+
         User user = new User();
         user.setUsername(param.getUsername());
         user.setPassword(CherryAesUtil.encrypt(param.getPassword()));
@@ -40,25 +57,47 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         userMapper.insert(user);
 
+        codeCache.invalidate(cacheKey);
+
         return buildAuthRes(user);
     }
 
     @Override
     public AuthVO login(LoginParam param) {
-        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(User::getUsername, param.getUsername());
-        User user = userMapper.selectOne(queryWrapper);
+        if (param.getLoginType() == null || param.getLoginType() == 1) {
+            LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(User::getUsername, param.getUsername());
+            User user = userMapper.selectOne(queryWrapper);
 
-        if (user == null) {
-            throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "用户名或密码错误");
+            if (user == null) {
+                throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "用户名或密码错误");
+            }
+
+            String decryptedPassword = CherryAesUtil.decrypt(user.getPassword());
+            if (!decryptedPassword.equals(param.getPassword())) {
+                throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "用户名或密码错误");
+            }
+            return buildAuthRes(user);
+        } else if (param.getLoginType() == 2) {
+            String cacheKey = CACHE_KEY_AUTH_CODE + "2:" + param.getEmail();
+            String cachedCode = codeCache.getIfPresent(cacheKey);
+            if (cachedCode == null || !cachedCode.equals(param.getCode())) {
+                throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "验证码错误或已过期");
+            }
+
+            LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(User::getEmail, param.getEmail());
+            User user = userMapper.selectOne(queryWrapper);
+
+            if (user == null) {
+                throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "该邮箱未注册");
+            }
+            
+            codeCache.invalidate(cacheKey);
+            return buildAuthRes(user);
+        } else {
+            throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "不支持的登录类型");
         }
-
-        String decryptedPassword = CherryAesUtil.decrypt(user.getPassword());
-        if (!decryptedPassword.equals(param.getPassword())) {
-            throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "用户名或密码错误");
-        }
-
-        return buildAuthRes(user);
     }
 
     private AuthVO buildAuthRes(User user) {
@@ -70,5 +109,29 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         authVO.setNickname(user.getNickname());
         authVO.setAvatar(user.getAvatar());
         return authVO;
+    }
+
+    @Override
+    public String sendCode(String email, Integer type) {
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(User::getEmail, email);
+        boolean exists = userMapper.exists(queryWrapper);
+        
+        if (type == 1 && exists) {
+            throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "该邮箱已经注册");
+        }
+        if (type == 2 && !exists) {
+            throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "该邮箱未注册");
+        }
+
+        String code = RandomStringUtils.randomNumeric(6);
+        String cacheKey = CACHE_KEY_AUTH_CODE + type + ":" + email;
+        codeCache.put(cacheKey, code);
+
+        try {
+            return code;
+        } catch (Exception e) {
+            throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "发送验证码失败");
+        }
     }
 }

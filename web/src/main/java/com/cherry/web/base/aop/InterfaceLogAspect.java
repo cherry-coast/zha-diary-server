@@ -43,6 +43,9 @@ public class InterfaceLogAspect {
         String userName = Objects.isNull(UserContext.getUser()) ? "" : UserContext.getUser().getName();
         ServletRequestAttributes requestAttributes =
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (Objects.isNull(requestAttributes)) {
+            return proceedingJoinPoint.proceed(proceedingJoinPoint.getArgs());
+        }
         HttpServletRequest request = requestAttributes.getRequest();
         MethodSignature methodSignature = (MethodSignature) proceedingJoinPoint.getSignature();
         Method method = methodSignature.getMethod();
