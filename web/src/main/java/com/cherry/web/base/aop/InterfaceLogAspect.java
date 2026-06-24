@@ -34,7 +34,7 @@ import java.util.Objects;
 @Component
 public class InterfaceLogAspect {
 
-    @Pointcut("execution( * com.cherry.*.api.*.*(..))")
+    @Pointcut("execution( * com.cherry.*.controller.*.*(..))")
     public void interfaceLogAspect() {
     }
 
