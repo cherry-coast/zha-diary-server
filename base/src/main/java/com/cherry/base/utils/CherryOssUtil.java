@@ -48,7 +48,9 @@ public class CherryOssUtil {
 
         OSS ossClient = null;
         try {
-            ossClient = new OSSClientBuilder().build(ossProperties.getEndpoint(), ossProperties.getAccessKeyId(), ossProperties.getAccessKeySecret());
+            ossClient = new OSSClientBuilder().build(
+                    ossProperties.getEndpoint(), ossProperties.getAccessKeyId(), ossProperties.getAccessKeySecret()
+            );
             
             InputStream inputStream = file.getInputStream();
             ObjectMetadata objectMetadata = new ObjectMetadata();

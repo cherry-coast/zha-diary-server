@@ -173,6 +173,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             if (StringUtils.isBlank(param.getEmail()) || StringUtils.isBlank(param.getCode())) {
                 throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "修改密码需提供邮箱和验证码");
             }
+
+            if (!user.getEmail().equals(param.getEmail())) {
+                throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "邮箱与当前用户邮箱不一致");
+            }
             
             // Validate code
             String cacheKey = CACHE_KEY_AUTH_CODE + "3:" + param.getEmail();

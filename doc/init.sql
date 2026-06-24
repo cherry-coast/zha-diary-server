@@ -1,3 +1,9 @@
+CREATE DATABASE IF NOT EXISTS `zha_diary`
+    DEFAULT CHARACTER SET utf8mb4
+    DEFAULT COLLATE utf8mb4_general_ci;
+
+USE `zha_diary`;
+
 CREATE TABLE `user`
 (
     `id`          bigint(20)   NOT NULL AUTO_INCREMENT COMMENT '主键ID',

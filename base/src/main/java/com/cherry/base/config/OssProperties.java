@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Data
 @Configuration
-@ConfigurationProperties(prefix = "aliyun.oss")
+@ConfigurationProperties(prefix = "cherry.oss")
 public class OssProperties {
 
     /**
