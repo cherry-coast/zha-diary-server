@@ -22,14 +22,14 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        // 检查是否允许匿名访问
-        if (handlerMethod.hasMethodAnnotation(AllowAnonymousAccess.class) || 
-            handlerMethod.getBeanType().isAnnotationPresent(AllowAnonymousAccess.class)) {
-            return true;
-        }
+        boolean allowAnonymous = handlerMethod.hasMethodAnnotation(AllowAnonymousAccess.class) || 
+            handlerMethod.getBeanType().isAnnotationPresent(AllowAnonymousAccess.class);
 
         String token = request.getHeader("Authorization");
         if (StringUtils.isBlank(token)) {
+            if (allowAnonymous) {
+                return true;
+            }
             throw new CherryException(BaseExceptionEnum.NO_AUTHORIZE.getErrorCode(), "未登录，请先登录");
         }
         
@@ -56,8 +56,10 @@ public class AuthInterceptor implements HandlerInterceptor {
             }
             
         } catch (CherryException e) {
+            if (allowAnonymous) return true;
             throw e;
         } catch (Exception e) {
+            if (allowAnonymous) return true;
             throw new CherryException(BaseExceptionEnum.NO_AUTHORIZE.getErrorCode(), "Token无效或已过期");
         }
 
