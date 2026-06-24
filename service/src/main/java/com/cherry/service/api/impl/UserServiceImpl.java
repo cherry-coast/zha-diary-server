@@ -53,7 +53,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setUsername(param.getUsername());
         user.setPassword(CherryAesUtil.encrypt(param.getPassword()));
         user.setEmail(param.getEmail());
-        user.setNickname(param.getNickname());
 
         userMapper.insert(user);
 
@@ -106,7 +105,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         authVO.setToken(token);
         authVO.setUserId(user.getId());
         authVO.setUsername(user.getUsername());
-        authVO.setNickname(user.getNickname());
         authVO.setAvatar(user.getAvatar());
         return authVO;
     }

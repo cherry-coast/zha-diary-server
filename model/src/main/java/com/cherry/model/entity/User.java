@@ -27,10 +27,6 @@ public class User extends BaseModel {
     @TableField(value = "`salt`")
     private String salt;
 
-    @Schema(description = "Nickname")
-    @TableField(value = "`nickname`")
-    private String nickname;
-
     @Schema(description = "Avatar URL")
     @TableField(value = "`avatar`")
     private String avatar;
