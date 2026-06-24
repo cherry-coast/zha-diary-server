@@ -10,6 +10,7 @@ import com.cherry.base.utils.CherryOssUtil;
 import com.cherry.base.utils.TokenUtil;
 import com.cherry.database.mapper.UserMapper;
 import com.cherry.model.entity.User;
+import com.cherry.model.enums.CodeTypeEnum;
 import com.cherry.model.param.auth.LoginParam;
 import com.cherry.model.param.auth.RegisterParam;
 import com.cherry.model.param.user.UpdateUserInfoParam;
@@ -50,7 +51,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "用户名已存在");
         }
 
-        String cacheKey = CACHE_KEY_AUTH_CODE + "1:" + param.getEmail();
+        String cacheKey = CACHE_KEY_AUTH_CODE + CodeTypeEnum.REGISTER.getCode() + ":" + param.getEmail();
         String cachedCode = codeCache.getIfPresent(cacheKey);
         if (cachedCode == null || !cachedCode.equals(param.getCode())) {
             throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "验证码错误或已过期");
@@ -85,7 +86,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             }
             return buildAuthRes(user);
         } else if (param.getLoginType() == 2) {
-            String cacheKey = CACHE_KEY_AUTH_CODE + "2:" + param.getEmail();
+            String cacheKey = CACHE_KEY_AUTH_CODE + CodeTypeEnum.LOGIN.getCode() + ":" + param.getEmail();
             String cachedCode = codeCache.getIfPresent(cacheKey);
             if (cachedCode == null || !cachedCode.equals(param.getCode())) {
                 throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "验证码错误或已过期");
@@ -118,19 +119,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public String sendCode(String email, Integer type) {
+        CodeTypeEnum codeType = CodeTypeEnum.getByCode(type);
+        if (codeType == null) {
+            throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "未知的验证码类型");
+        }
+
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(User::getEmail, email);
         boolean exists = userMapper.exists(queryWrapper);
 
-        if (type == 1 && exists) {
+        if (codeType == CodeTypeEnum.REGISTER && exists) {
             throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "该邮箱已经注册");
         }
-        if ((type == 2 || type == 3) && !exists) {
+        if ((codeType == CodeTypeEnum.LOGIN || codeType == CodeTypeEnum.UPDATE_INFO) && !exists) {
             throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "该邮箱未注册");
         }
 
         String code = RandomStringUtils.randomNumeric(6);
-        String cacheKey = CACHE_KEY_AUTH_CODE + type + ":" + email;
+        String cacheKey = CACHE_KEY_AUTH_CODE + codeType.getCode() + ":" + email;
         codeCache.put(cacheKey, code);
 
         try {
@@ -179,7 +185,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             }
             
             // Validate code
-            String cacheKey = CACHE_KEY_AUTH_CODE + "3:" + param.getEmail();
+            String cacheKey = CACHE_KEY_AUTH_CODE + CodeTypeEnum.UPDATE_INFO.getCode() + ":" + param.getEmail();
             String cachedCode = codeCache.getIfPresent(cacheKey);
             if (cachedCode == null || !cachedCode.equals(param.getCode())) {
                 throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "验证码错误或已过期");
