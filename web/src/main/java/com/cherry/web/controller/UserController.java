@@ -21,7 +21,7 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/avatar")
-    @Operation(summary = "Update User Avatar")
+    @Operation(summary = "Upload User Avatar")
     public CherryResponseEntity<String> uploadAvatar(@RequestParam("file") MultipartFile file) {
         return CherryResponseEntity.success(userService.uploadAvatar(file));
     }
