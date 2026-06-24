@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.cherry.base.exception.BaseExceptionEnum;
 import com.cherry.base.exception.CherryException;
 import com.cherry.base.utils.CherryAesUtil;
+import com.cherry.base.utils.CherryOssUtil;
 import com.cherry.base.utils.TokenUtil;
 import com.cherry.database.mapper.UserMapper;
 import com.cherry.model.entity.User;
@@ -18,8 +19,10 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.concurrent.TimeUnit;
+import java.util.Collections;
 
 
 @Service
@@ -29,10 +32,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private static final String CACHE_KEY_AUTH_CODE = "auth:code:";
 
     private final Cache<String, String> codeCache = Caffeine.newBuilder()
-            .expireAfterWrite(2, TimeUnit.MINUTES)
+            .expireAfterWrite(5, TimeUnit.MINUTES)
             .build();
 
     private final UserMapper userMapper;
+    private final CherryOssUtil cherryOssUtil;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -127,9 +131,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         codeCache.put(cacheKey, code);
 
         try {
-            return code;
+            com.cherry.base.utils.CherryMailUtil.postMessage("注册验证码", "您的验证码是：" + code + "，5分钟内有效。", Collections.singletonList(email));
         } catch (Exception e) {
             throw new CherryException(BaseExceptionEnum.FAIL.getErrorCode(), "发送验证码失败");
         }
+        
+        return code;
+    }
+
+    @Override
+    public String uploadAvatar(MultipartFile file) {
+        return cherryOssUtil.uploadImage(file);
     }
 }

@@ -5,6 +5,7 @@ import com.cherry.model.param.auth.LoginParam;
 import com.cherry.model.param.auth.RegisterParam;
 import com.cherry.model.vo.auth.AuthVO;
 import com.cherry.model.entity.User;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface UserService extends IService<User> {
 
@@ -32,5 +33,13 @@ public interface UserService extends IService<User> {
      * @return The verification code
      */
     String sendCode(String email, Integer type);
+
+    /**
+     * upload user avatar
+     *
+     * @param file   avatar image file
+     * @return avatar URL
+     */
+    String uploadAvatar(MultipartFile file);
 
 }
