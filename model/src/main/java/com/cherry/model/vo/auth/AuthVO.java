@@ -16,9 +16,6 @@ public class AuthVO {
     @Schema(description = "Username")
     private String username;
 
-    @Schema(description = "Nickname")
-    private String nickname;
-
     @Schema(description = "Avatar URL")
     private String avatar;
 

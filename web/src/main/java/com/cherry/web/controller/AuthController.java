@@ -1,5 +1,6 @@
 package com.cherry.web.controller;
 
+import com.cherry.base.annotation.AllowAnonymousAccess;
 import com.cherry.base.domain.response.CherryResponseEntity;
 import com.cherry.model.param.auth.LoginParam;
 import com.cherry.model.param.auth.RegisterParam;
@@ -23,6 +24,7 @@ public class AuthController {
 
     private final UserService userService;
 
+    @AllowAnonymousAccess
     @PostMapping("/register")
     @Operation(summary = "User Registration")
     public CherryResponseEntity<AuthVO> register(@RequestBody RegisterParam param) {
@@ -30,6 +32,7 @@ public class AuthController {
         return CherryResponseEntity.success(authVO);
     }
 
+    @AllowAnonymousAccess
     @PostMapping("/login")
     @Operation(summary = "User Login")
     public CherryResponseEntity<AuthVO> login(@RequestBody LoginParam param) {
@@ -37,6 +40,7 @@ public class AuthController {
         return CherryResponseEntity.success(authVO);
     }
 
+    @AllowAnonymousAccess
     @PostMapping("/send-code")
     @Operation(summary = "Send Email Verification Code")
     public CherryResponseEntity<String> sendCode(@RequestBody SendCodeParam param) {

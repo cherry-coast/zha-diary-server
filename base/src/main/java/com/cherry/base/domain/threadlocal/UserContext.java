@@ -39,5 +39,7 @@ public class UserContext {
 
         private String name;
 
+        private Integer userType;
+
     }
 }

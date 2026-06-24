@@ -101,7 +101,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     private AuthVO buildAuthRes(User user) {
-        String token = TokenUtil.generateToken(user.getId(), user.getUsername());
+        String token = TokenUtil.generateToken(user.getId(), user.getUsername(), 1);
         AuthVO authVO = new AuthVO();
         authVO.setToken(token);
         authVO.setUserId(user.getId());
